@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_INSTRUCTIONS 100
+#define STAGES 5
+
+const char *stageNames[] = {"IF", "ID", "EX", "MEM", "WB"};
+
+typedef struct {
+    char text[100];   // Instruction text
+    int stage;        // Current stage (0 to 5)
+    int completed;    // Flag to mark if instruction is done
+} Instruction;
+
+int main() {
+    Instruction instructions[MAX_INSTRUCTIONS];
+    int num;
+
+    printf("Enter number of instructions: ");
+    scanf("%d", &num);
+    getchar(); // consume newline
+
+    // Take instruction input
+    for (int i = 0; i < num; i++) {
+        printf("Enter instruction %d: ", i + 1);
+        fgets(instructions[i].text, sizeof(instructions[i].text), stdin);
+        instructions[i].text[strcspn(instructions[i].text, "\n")] = '\0'; // remove newline
+        instructions[i].stage = -1; // Not started yet
+        instructions[i].completed = 0;
+    }
+
+    printf("\n--- Pipeline Simulation ---\n");
+
+    int clock = 0;
+    int completed = 0;
+
+    // Continue simulation until all instructions complete WB
+    while (completed < num) {
+        printf("\nClock Cycle %d:\n", clock + 1);
+
+        // Print pipeline stages
+        for (int i = 0; i < num; i++) {
+            if (instructions[i].completed) continue;
+
+            if (clock >= i && instructions[i].stage < STAGES) {
+                instructions[i].stage++;
+                printf("%s → %s\n", instructions[i].text, stageNames[instructions[i].stage]);
+
+                if (instructions[i].stage == STAGES - 1) {
+                    instructions[i].completed = 1;
+                    completed++;
+                }
+            }
+        }
+
+        clock++;
+    }
+
+    printf("\nAll instructions completed in %d clock cycles.\n", clock);
+
+    return 0;
+}
