@@ -8,9 +8,9 @@
 const char *stageNames[] = {"IF", "ID", "EX", "MEM", "WB"};
 
 typedef struct {
-    char text[100];   // Instruction text
-    int stage;        // Current stage (0 to 5)
-    int completed;    // Flag to mark if instruction is done
+    char text[100];
+    int stage;
+    int completed;
 } Instruction;
 
 int main() {
@@ -19,14 +19,13 @@ int main() {
 
     printf("Enter number of instructions: ");
     scanf("%d", &num);
-    getchar(); // consume newline
+    getchar();
 
-    // Take instruction input
     for (int i = 0; i < num; i++) {
         printf("Enter instruction %d: ", i + 1);
         fgets(instructions[i].text, sizeof(instructions[i].text), stdin);
-        instructions[i].text[strcspn(instructions[i].text, "\n")] = '\0'; // remove newline
-        instructions[i].stage = -1; // Not started yet
+        instructions[i].text[strcspn(instructions[i].text, "\n")] = '\0';
+        instructions[i].stage = -1;
         instructions[i].completed = 0;
     }
 
@@ -35,26 +34,46 @@ int main() {
     int clock = 0;
     int completed = 0;
 
-    // Continue simulation until all instructions complete WB
-    while (completed < num) {
-        printf("\nClock Cycle %d:\n", clock + 1);
+    // To store pipeline status
+    char pipeline[MAX_INSTRUCTIONS][MAX_INSTRUCTIONS + STAGES][10] = {""};
 
-        // Print pipeline stages
+    while (completed < num) {
         for (int i = 0; i < num; i++) {
             if (instructions[i].completed) continue;
 
             if (clock >= i && instructions[i].stage < STAGES) {
                 instructions[i].stage++;
-                printf("%s → %s\n", instructions[i].text, stageNames[instructions[i].stage]);
+                strcpy(pipeline[i][clock], stageNames[instructions[i].stage]);
 
                 if (instructions[i].stage == STAGES - 1) {
                     instructions[i].completed = 1;
                     completed++;
                 }
+            } else if (clock >= i) {
+                strcpy(pipeline[i][clock], " "); // empty stage
             }
         }
 
         clock++;
+    }
+
+    // Print table header
+    printf("\n%-20s", "Instruction");
+    for (int c = 0; c < clock; c++) {
+        printf("C%-3d ", c + 1);
+    }
+    printf("\n");
+
+    // Print table rows
+    for (int i = 0; i < num; i++) {
+        printf("%-20s", instructions[i].text);
+        for (int c = 0; c < clock; c++) {
+            if (strlen(pipeline[i][c]) == 0)
+                printf("%-5s", " ");
+            else
+                printf("%-5s", pipeline[i][c]);
+        }
+        printf("\n");
     }
 
     printf("\nAll instructions completed in %d clock cycles.\n", clock);
