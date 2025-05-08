@@ -6,6 +6,7 @@ typedef struct Node {
     char name[50];
     int rank;
     struct Node *left, *right;
+    int height; // Height of the node for AVL balancing
 } Node;
 
 Node* createNode(char *name, int rank) {
@@ -13,7 +14,50 @@ Node* createNode(char *name, int rank) {
     strcpy(newNode->name, name);
     newNode->rank = rank;
     newNode->left = newNode->right = NULL;
+    newNode->height = 1; // New node is initially added at leaf
     return newNode;
+}
+
+int height(Node *N) {
+    if (N == NULL) return 0;
+    return N->height;
+}
+
+int getBalance(Node *N) {
+    if (N == NULL) return 0;
+    return height(N->left) - height(N->right);
+}
+
+Node* rightRotate(Node *y) {
+    Node *x = y->left;
+    Node *T2 = x->right;
+
+    // Perform rotation
+    x->right = y;
+    y->left = T2;
+
+    // Update heights
+    y->height = 1 + (height(y->left) > height(y->right) ? height(y->left) : height(y->right));
+    x->height = 1 + (height(x->left) > height(x->right) ? height(x->left) : height(x->right));
+
+    // Return new root
+    return x;
+}
+
+Node* leftRotate(Node *x) {
+    Node *y = x->right;
+    Node *T2 = y->left;
+
+    // Perform rotation
+    y->left = x;
+    x->right = T2;
+
+    // Update heights
+    x->height = 1 + (height(x->left) > height(x->right) ? height(x->left) : height(x->right));
+    y->height = 1 + (height(y->left) > height(y->right) ? height(y->left) : height(y->right));
+
+    // Return new root
+    return y;
 }
 
 Node* insert(Node* root, char *name, int rank) {
@@ -26,6 +70,37 @@ Node* insert(Node* root, char *name, int rank) {
     } else {
         // Duplicate rank not allowed
         printf("Duplicate rank %d for %s ignored.\n", rank, name);
+        return root;
+    }
+
+    // Update height of this ancestor node
+    root->height = 1 + (height(root->left) > height(root->right) ? height(root->left) : height(root->right));
+
+    // Get the balance factor
+    int balance = getBalance(root);
+
+    // If the node becomes unbalanced, then there are 4 cases
+
+    // Left Left Case
+    if (balance > 1 && rank < root->left->rank) {
+        return rightRotate(root);
+    }
+
+    // Right Right Case
+    if (balance < -1 && rank > root->right->rank) {
+        return leftRotate(root);
+    }
+
+    // Left Right Case
+    if (balance > 1 && rank > root->left->rank) {
+        root->left = leftRotate(root->left);
+        return rightRotate(root);
+    }
+
+    // Right Left Case
+    if (balance < -1 && rank < root->right->rank) {
+        root->right = rightRotate(root->right);
+        return leftRotate(root);
     }
 
     return root;
@@ -41,27 +116,18 @@ void inOrder(Node* root) {
 void drawTree(Node* root, int space) {
     if (root == NULL) return;
 
-    // Increase space for right subtree
+    // Increase distance between levels
     space += 6;
 
-    // Recur for right subtree first
+    // Process right child first
     drawTree(root->right, space);
 
-    // Print the current node with appropriate spaces
+    // Print current node after space count
+    printf("\n");
     for (int i = 6; i < space; i++) printf(" ");
-    printf("%s(R:%d)\n", root->name, root->rank);
+    printf("%s(R:%d)", root->name, root->rank);
 
-    // Print the left and right connectors
-    if (root->left != NULL || root->right != NULL) {
-        for (int i = 6; i < space - 3; i++) printf(" ");
-        if (root->right != NULL) {
-            printf("  /");
-        } else {
-            printf("  \\");
-        }
-    }
-
-    // Recur for left subtree
+    // Process left child
     drawTree(root->left, space);
 }
 
@@ -86,7 +152,7 @@ Node* buildTree() {
         root = insert(root, names[i], ranks[i]);
     }
 
-    printf("Tree built with sample data.\n");
+    printf("AVL Balanced Tree built with sample data.\n");
     return root;
 }
 
@@ -100,7 +166,7 @@ int main() {
         printf("2. Show Leaderboard (In-Order)\n");
         printf("3. Draw Tree\n");
         printf("4. Exit\n");
-        printf("5. Build Sample Tree\n");
+        printf("5. Build Sample AVL Tree\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
@@ -127,6 +193,7 @@ int main() {
             freeTree(root);
         }
         else if (choice == 5) {
+            freeTree(root); // free existing tree before building new
             root = buildTree();
         }
         else {
